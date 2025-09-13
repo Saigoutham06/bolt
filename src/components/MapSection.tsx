@@ -61,10 +61,19 @@ const MapSection: React.FC<MapSectionProps> = ({ searchQuery, onBack }) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'on-time': return 'text-green-600 bg-green-100';
-      case 'delayed': return 'text-red-600 bg-red-100';
-      case 'early': return 'text-blue-600 bg-blue-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'on-time': return `text-green-600 bg-green-100`;
+      case 'delayed': return `text-red-600 bg-red-100`;
+      case 'early': return `text-blue-600 bg-blue-100`;
+      default: return `text-gray-600 bg-gray-100`;
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'on-time': return t('onTime');
+      case 'delayed': return t('delayed');
+      case 'early': return t('early');
+      default: return t('unknown');
     }
   };
 
@@ -147,7 +156,7 @@ const MapSection: React.FC<MapSectionProps> = ({ searchQuery, onBack }) => {
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-gray-800">{bus.route}</h4>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(bus.status)}`}>
-                    {bus.status}
+                    {getStatusText(bus.status)}
                   </span>
                 </div>
                 

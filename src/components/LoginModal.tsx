@@ -110,14 +110,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
         <div className="bg-gradient-to-r from-teal-500 to-cyan-500 px-8 pt-8 pb-6">
           <h2 className="text-2xl font-bold text-white mb-2">
             {activeTab === 'passenger' 
-              ? (isSignup ? 'Create Passenger Account' : t('passengerWelcome'))
-              : (isSignup ? 'Driver Registration' : t('driverWelcome'))
+              ? (isSignup ? t('createPassengerAccount') : t('passengerWelcome'))
+              : (isSignup ? t('driverRegistration') : t('driverWelcome'))
             }
           </h2>
           <p className="text-teal-100">
             {activeTab === 'passenger' 
-              ? (isSignup ? 'Join thousands of happy commuters' : t('passengerSubtext'))
-              : (isSignup ? 'Register as a verified driver' : t('driverSubtext'))
+              ? (isSignup ? t('joinThousandsCommuters') : t('passengerSubtext'))
+              : (isSignup ? t('registerVerifiedDriver') : t('driverSubtext'))
             }
           </p>
         </div>
@@ -162,7 +162,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                 {isSignup && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">
-                      Full Name
+                      {t('fullName')}
                     </label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -170,7 +170,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                         type="text"
                         value={formData.full_name}
                         onChange={(e) => handleInputChange('full_name', e.target.value)}
-                        placeholder="Enter your full name"
+                        placeholder={t('enterFullName')}
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
                         required
                       />
@@ -221,13 +221,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                   {isSignup && (
                     <div className="space-y-2 mt-4">
                       <label className="text-sm font-medium text-gray-700">
-                        Phone Number (Optional)
+                        {t('phoneNumber')} (Optional)
                       </label>
                       <input
                         type="tel"
                         value={formData.phone_number}
                         onChange={(e) => handleInputChange('phone_number', e.target.value)}
-                        placeholder="+91 9876543210"
+                        placeholder={t('enterPhoneNumber')}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
                       />
                     </div>
@@ -248,7 +248,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                   <>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
-                        Full Name
+                        {t('fullName')}
                       </label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -256,7 +256,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                           type="text"
                           value={formData.full_name}
                           onChange={(e) => handleInputChange('full_name', e.target.value)}
-                          placeholder="Enter your full name"
+                          placeholder={t('enterFullName')}
                           className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
                           required
                         />
@@ -265,13 +265,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                     
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
-                        Phone Number
+                        {t('phoneNumber')}
                       </label>
                       <input
                         type="tel"
                         value={formData.phone_number}
                         onChange={(e) => handleInputChange('phone_number', e.target.value)}
-                        placeholder="+91 9876543210"
+                        placeholder={t('enterPhoneNumber')}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
                         required
                       />
@@ -279,13 +279,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                     
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
-                        License Number
+                        {t('licenseNumber')}
                       </label>
                       <input
                         type="text"
                         value={formData.license_number}
                         onChange={(e) => handleInputChange('license_number', e.target.value)}
-                        placeholder="DL1234567890"
+                        placeholder={t('enterLicenseNumber')}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
                         required
                       />
@@ -334,7 +334,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                     disabled={!formData.employee_id || loading}
                     className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                   >
-                    {otpSent ? 'Resend' : 'Send OTP'}
+                    {otpSent ? t('resend') : t('sendOTP')}
                   </button>
                   </div>
                   </div>
@@ -350,10 +350,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  {isSignup ? 'Creating account...' : 'Logging in...'}
+                  {isSignup ? t('creatingAccount') : t('loggingIn')}
                 </div>
               ) : (
-                isSignup ? (activeTab === 'passenger' ? 'Create Account' : 'Register') : t('loginButton')
+                isSignup ? (activeTab === 'passenger' ? t('createAccount') : t('register')) : t('loginButton')
               )}
             </button>
 
@@ -378,7 +378,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
-                  <span className="font-medium text-gray-700">Continue with Google</span>
+                  <span className="font-medium text-gray-700">{t('continueWithGoogle')}</span>
                 </button>
               </>
             )}
@@ -394,8 +394,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                 className="text-sm text-teal-600 hover:underline"
               >
                 {isSignup 
-                  ? `Already have an account? Sign in`
-                  : `Don't have an account? Sign up`
+                  ? t('alreadyHaveAccount')
+                  : t('dontHaveAccount')
                 }
               </button>
             </div>
