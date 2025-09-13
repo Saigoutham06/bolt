@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { busAPI, subscriptions } from '../lib/supabase';
+import { busAPI, subscriptions } from '../lib/mockAPI';
 
 interface BusTrackingData {
   route: {

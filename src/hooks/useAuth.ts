@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react';
-import { supabase, authAPI } from '../lib/supabase';
+import { authAPI } from '../lib/mockAPI';
 
 interface User {
   id: string;
@@ -29,73 +29,48 @@ export const useAuth = () => {
 
 export const useAuthProvider = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadUserProfile(session.user);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          await loadUserProfile(session.user);
+    // Check for existing session in localStorage
+    const savedSession = localStorage.getItem('auth_session');
+    if (savedSession) {
+      try {
+        const session = JSON.parse(savedSession);
+        if (session.expires_at > Date.now()) {
+          setUser(session.user);
         } else {
-          setUser(null);
-          setLoading(false);
+          localStorage.removeItem('auth_session');
         }
+      } catch (error) {
+        localStorage.removeItem('auth_session');
       }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const loadUserProfile = async (authUser: any) => {
-    try {
-      const userType = authUser.user_metadata?.user_type || 'passenger';
-      const table = userType === 'driver' ? 'drivers' : 'passengers';
-      
-      const { data: profile, error } = await supabase
-        .from(table)
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      if (error) {
-        console.error('Error loading profile:', error);
-        setUser(null);
-      } else {
-        setUser({
-          id: authUser.id,
-          email: authUser.email,
-          user_type: userType,
-          profile,
-        });
-      }
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-      setUser(null);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []);
 
   const signUp = async (type: 'passenger' | 'driver', data: any) => {
     setLoading(true);
     try {
       if (type === 'passenger') {
-        await authAPI.passengerSignup(data);
-        // For passengers, we can sign them in immediately
-        const response = await authAPI.passengerLogin(data.email, data.password);
-        if (response.session) {
-          await supabase.auth.setSession(response.session);
-        }
+        const response = await authAPI.passengerSignup(data);
+        // Auto sign in after successful signup
+        const loginResponse = await authAPI.passengerLogin(data.email, data.password);
+        
+        const userData = {
+          id: response.user.id,
+          email: response.user.email,
+          user_type: 'passenger' as const,
+          profile: response.user,
+        };
+        
+        setUser(userData);
+        
+        // Save session
+        const session = {
+          user: userData,
+          expires_at: Date.now() + 3600000, // 1 hour
+        };
+        localStorage.setItem('auth_session', JSON.stringify(session));
       } else {
         await authAPI.driverSignup(data);
         // Drivers need verification, so we don't sign them in
@@ -112,19 +87,39 @@ export const useAuthProvider = () => {
     try {
       if (type === 'passenger') {
         const response = await authAPI.passengerLogin(credentials.email, credentials.password);
-        if (response.session) {
-          await supabase.auth.setSession(response.session);
-        }
+        
+        const userData = {
+          id: response.user.id,
+          email: response.user.email,
+          user_type: 'passenger' as const,
+          profile: response.user,
+        };
+        
+        setUser(userData);
+        
+        // Save session
+        const session = {
+          user: userData,
+          expires_at: Date.now() + 3600000, // 1 hour
+        };
+        localStorage.setItem('auth_session', JSON.stringify(session));
       } else {
         const response = await authAPI.driverLogin(credentials.employee_id, credentials.otp);
-        // For drivers, we handle sessions differently since they use OTP
-        // Store driver session in localStorage for demo purposes
-        localStorage.setItem('driver_session', JSON.stringify(response));
-        setUser({
+        
+        const userData = {
           id: response.driver.id,
-          user_type: 'driver',
+          user_type: 'driver' as const,
           profile: response.driver,
-        });
+        };
+        
+        setUser(userData);
+        
+        // Save driver session
+        const session = {
+          user: userData,
+          expires_at: Date.now() + 3600000, // 1 hour
+        };
+        localStorage.setItem('auth_session', JSON.stringify(session));
       }
     } catch (error) {
       throw error;
@@ -136,8 +131,7 @@ export const useAuthProvider = () => {
   const signOut = async () => {
     setLoading(true);
     try {
-      await supabase.auth.signOut();
-      localStorage.removeItem('driver_session');
+      localStorage.removeItem('auth_session');
       setUser(null);
     } catch (error) {
       console.error('Error signing out:', error);
