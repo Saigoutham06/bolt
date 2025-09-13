@@ -106,12 +106,12 @@ const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Feature Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16 max-w-6xl mx-auto">
           {[
-            { icon: MapPin, title: t('liveTracking'), desc: "Real-time bus locations", color: "from-blue-500 to-purple-600" },
-            { icon: Clock, title: t('nearbyStops'), desc: "Find stops near you", color: "from-green-500 to-teal-600" },
-            { icon: Route, title: t('routeInfo'), desc: "Complete route details", color: "from-orange-500 to-red-600" },
-            { icon: Zap, title: "Smart Predictions", desc: "AI-powered arrival times", color: "from-yellow-500 to-orange-600" },
-            { icon: Shield, title: "Safe & Secure", desc: "Verified driver network", color: "from-indigo-500 to-blue-600" },
-            { icon: Smartphone, title: "Mobile First", desc: "Optimized for all devices", color: "from-pink-500 to-purple-600" }
+            { icon: MapPin, title: t('liveTracking'), desc: t('liveTracking'), color: "from-blue-500 to-purple-600" },
+            { icon: Clock, title: t('nearbyStops'), desc: t('nearbyStops'), color: "from-green-500 to-teal-600" },
+            { icon: Route, title: t('routeInfo'), desc: t('routeInfo'), color: "from-orange-500 to-red-600" },
+            { icon: Zap, title: t('smartPredictions'), desc: t('smartPredictionsDesc'), color: "from-yellow-500 to-orange-600" },
+            { icon: Shield, title: t('safeSecure'), desc: t('safeSecureDesc'), color: "from-indigo-500 to-blue-600" },
+            { icon: Smartphone, title: t('mobileFirst'), desc: t('mobileFirstDesc'), color: "from-pink-500 to-purple-600" }
           ].map((feature, index) => (
             <div
               key={index}
