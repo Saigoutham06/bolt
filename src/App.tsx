@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import AuthProvider from './components/AuthProvider';
 import Header from './components/Header';
 import HeroSection from './components/HeroSection';
 import MapSection from './components/MapSection';
@@ -48,6 +49,7 @@ function App() {
   };
 
   return (
+    <AuthProvider>
     <div className="min-h-screen bg-slate-50 overflow-x-hidden">
       {currentView === 'hero' && (
         <>
@@ -84,6 +86,7 @@ function App() {
         initialTab={loginType}
       />
     </div>
+    </AuthProvider>
   );
 }
 

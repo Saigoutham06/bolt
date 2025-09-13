@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Navigation, Clock, MapPin, Zap, Users, Route as RouteIcon, Filter, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
+import { useBusTracking } from '../hooks/useBusTracking';
 
 interface MapSectionProps {
   searchQuery: string;
@@ -19,27 +20,42 @@ interface BusData {
 const MapSection: React.FC<MapSectionProps> = ({ searchQuery, onBack }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedBus, setSelectedBus] = useState<BusData | null>(null);
+  const [selectedBus, setSelectedBus] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { t } = useLanguage();
+  const { searchResults, liveLocations, loading: trackingLoading, searchBuses, refreshLiveLocations } = useBusTracking();
 
-  const busData: BusData[] = [
-    { id: '1', route: 'Route 45A', nextStop: 'Tech Park', eta: 5, passengers: 23, status: 'on-time' },
-    { id: '2', route: 'Route 12B', nextStop: 'City Center', eta: 12, passengers: 18, status: 'delayed' },
-    { id: '3', route: 'Route 78C', nextStop: 'Mall Junction', eta: 3, passengers: 31, status: 'early' }
-  ];
+  // Transform search results for display
+  const busData = searchResults.flatMap(result => 
+    result.buses.map(bus => ({
+      id: bus.id,
+      route: result.route.route_number,
+      nextStop: bus.location?.next_stop || 'Unknown',
+      eta: bus.location?.estimated_arrival ? 
+        Math.ceil((new Date(bus.location.estimated_arrival).getTime() - Date.now()) / (1000 * 60)) : 0,
+      passengers: bus.current_passengers,
+      status: bus.location?.status || 'unknown'
+    }))
+  );
 
   useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
+    // Search for buses when component mounts or search query changes
+    if (searchQuery) {
+      searchBuses(searchQuery);
+    }
+    
+    // Simulate initial loading
+    const timer = setTimeout(() => setLoading(false), 1500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [searchQuery, searchBuses]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
+    refreshLiveLocations();
+    if (searchQuery) {
+      searchBuses(searchQuery);
+    }
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
@@ -108,7 +124,19 @@ const MapSection: React.FC<MapSectionProps> = ({ searchQuery, onBack }) => {
 
           {/* Bus List */}
           <div className="max-h-96 overflow-y-auto">
-            {busData.map((bus, index) => (
+            {trackingLoading ? (
+              <div className="p-8 text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent mb-4"></div>
+                <p className="text-gray-600">Loading bus data...</p>
+              </div>
+            ) : busData.length === 0 ? (
+              <div className="p-8 text-center">
+                <MapPin className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-gray-600">No buses found for "{searchQuery}"</p>
+                <p className="text-sm text-gray-500 mt-2">Try searching for a different route or location</p>
+              </div>
+            ) : (
+              busData.map((bus, index) => (
               <div
                 key={bus.id}
                 onClick={() => setSelectedBus(selectedBus?.id === bus.id ? null : bus)}
@@ -146,22 +174,27 @@ const MapSection: React.FC<MapSectionProps> = ({ searchQuery, onBack }) => {
                   </div>
                 )}
               </div>
-            ))}
+              ))
+            )}
           </div>
 
           {/* Quick Stats */}
           <div className="p-4 bg-gray-50 border-t border-gray-200">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-lg font-bold text-teal-600">3</div>
+                <div className="text-lg font-bold text-teal-600">{searchResults.length}</div>
                 <div className="text-xs text-gray-600">Active Routes</div>
               </div>
               <div>
-                <div className="text-lg font-bold text-blue-600">72</div>
+                <div className="text-lg font-bold text-blue-600">
+                  {busData.reduce((total, bus) => total + (bus.passengers || 0), 0)}
+                </div>
                 <div className="text-xs text-gray-600">Total Passengers</div>
               </div>
               <div>
-                <div className="text-lg font-bold text-green-600">5</div>
+                <div className="text-lg font-bold text-green-600">
+                  {busData.length > 0 ? Math.round(busData.reduce((total, bus) => total + bus.eta, 0) / busData.length) : 0}
+                </div>
                 <div className="text-xs text-gray-600">Avg ETA (min)</div>
               </div>
             </div>
@@ -204,11 +237,11 @@ const MapSection: React.FC<MapSectionProps> = ({ searchQuery, onBack }) => {
             {/* Simulated Bus Markers */}
             {busData.map((bus, index) => {
               const positions = [
-                { left: '25%', top: '30%' },
-                { left: '60%', top: '45%' },
-                { left: '40%', top: '70%' }
+                { left: `${25 + index * 15}%`, top: `${30 + index * 10}%` },
+                { left: `${60 - index * 5}%`, top: `${45 + index * 8}%` },
+                { left: `${40 + index * 12}%`, top: `${70 - index * 15}%` }
               ];
-              const colors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500'];
+              const colors = ['bg-blue-500', 'bg-green-500', 'bg-orange-500', 'bg-purple-500', 'bg-red-500'];
               
               return (
               <div
@@ -219,14 +252,14 @@ const MapSection: React.FC<MapSectionProps> = ({ searchQuery, onBack }) => {
                 style={{ left: positions[index]?.left, top: positions[index]?.top }}
                 onClick={() => setSelectedBus(selectedBus?.id === bus.id ? null : bus)}
               >
-                <div className={`w-5 h-5 ${colors[index]} rounded-full shadow-lg border-3 border-white animate-ping absolute`}></div>
-                <div className={`w-5 h-5 ${colors[index]} rounded-full shadow-lg border-3 border-white relative`}></div>
+                <div className={`w-5 h-5 ${colors[index % colors.length]} rounded-full shadow-lg border-3 border-white animate-ping absolute`}></div>
+                <div className={`w-5 h-5 ${colors[index % colors.length]} rounded-full shadow-lg border-3 border-white relative`}></div>
                 <div className={`absolute top-8 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg text-xs font-semibold text-gray-800 whitespace-nowrap shadow-lg transition-all duration-300 ${
                   selectedBus?.id === bus.id ? 'scale-110 border-2 border-teal-400' : ''
                 }`}>
                   {bus.route}
                   <div className="text-xs text-gray-600 mt-1">
-                    {bus.eta} min • {bus.passengers} passengers
+                    {bus.eta} min • {bus.passengers || 0} passengers
                   </div>
                 </div>
               </div>

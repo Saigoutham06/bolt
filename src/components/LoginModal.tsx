@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User, UserCheck, Eye, EyeOff } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
+import { useAuth } from '../hooks/useAuth';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -11,18 +12,87 @@ interface LoginModalProps {
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) => {
   const [activeTab, setActiveTab] = useState<'passenger' | 'driver'>(initialTab);
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isSignup, setIsSignup] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    full_name: '',
+    phone_number: '',
+    employee_id: '',
+    otp: '',
+    license_number: ''
+  });
+  const [error, setError] = useState<string | null>(null);
   const { t } = useLanguage();
+  const { signUp, signIn, sendDriverOTP, loading } = useAuth();
 
   if (!isOpen) return null;
 
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setError(null);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setLoading(false);
-    onClose();
+    setError(null);
+
+    try {
+      if (activeTab === 'passenger') {
+        if (isSignup) {
+          await signUp('passenger', {
+            email: formData.email,
+            password: formData.password,
+            full_name: formData.full_name,
+            phone_number: formData.phone_number
+          });
+        } else {
+          await signIn('passenger', {
+            email: formData.email,
+            password: formData.password
+          });
+        }
+      } else {
+        if (isSignup) {
+          await signUp('driver', {
+            employee_id: formData.employee_id,
+            full_name: formData.full_name,
+            phone_number: formData.phone_number,
+            license_number: formData.license_number
+          });
+          setError('Registration submitted! Please wait for admin verification.');
+          return;
+        } else {
+          await signIn('driver', {
+            employee_id: formData.employee_id,
+            otp: formData.otp
+          });
+        }
+      }
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    }
+  };
+
+  const handleSendOTP = async () => {
+    if (!formData.employee_id) {
+      setError('Please enter your Employee ID');
+      return;
+    }
+
+    try {
+      const response = await sendDriverOTP(formData.employee_id);
+      setOtpSent(true);
+      setError(null);
+      // For demo purposes, show the OTP
+      if (response.debug_otp) {
+        alert(`Demo OTP: ${response.debug_otp}`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send OTP');
+    }
   };
 
   return (
@@ -39,10 +109,16 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
         {/* Header */}
         <div className="bg-gradient-to-r from-teal-500 to-cyan-500 px-8 pt-8 pb-6">
           <h2 className="text-2xl font-bold text-white mb-2">
-            {activeTab === 'passenger' ? t('passengerWelcome') : t('driverWelcome')}
+            {activeTab === 'passenger' 
+              ? (isSignup ? 'Create Passenger Account' : t('passengerWelcome'))
+              : (isSignup ? 'Driver Registration' : t('driverWelcome'))
+            }
           </h2>
           <p className="text-teal-100">
-            {activeTab === 'passenger' ? t('passengerSubtext') : t('driverSubtext')}
+            {activeTab === 'passenger' 
+              ? (isSignup ? 'Join thousands of happy commuters' : t('passengerSubtext'))
+              : (isSignup ? 'Register as a verified driver' : t('driverSubtext'))
+            }
           </p>
         </div>
 
@@ -74,9 +150,34 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
 
         {/* Form */}
         <div className="p-8">
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          
           <form onSubmit={handleLogin} className="space-y-6">
             {activeTab === 'passenger' ? (
               <>
+                {isSignup && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                      <input
+                        type="text"
+                        value={formData.full_name}
+                        onChange={(e) => handleInputChange('full_name', e.target.value)}
+                        placeholder="Enter your full name"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+                
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">
                     {t('emailLabel')}
@@ -85,6 +186,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <input
                       type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
                       placeholder={t('emailPlaceholder')}
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
                       required
@@ -100,6 +203,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <input
                       type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
                       placeholder={t('passwordPlaceholder')}
                       className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
                       required
@@ -112,15 +217,82 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
-                  <div className="text-right">
+                  
+                  {isSignup && (
+                    <div className="space-y-2 mt-4">
+                      <label className="text-sm font-medium text-gray-700">
+                        Phone Number (Optional)
+                      </label>
+                      <input
+                        type="tel"
+                        value={formData.phone_number}
+                        onChange={(e) => handleInputChange('phone_number', e.target.value)}
+                        placeholder="+91 9876543210"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
+                      />
+                    </div>
+                  )}
+                  
+                  {!isSignup && (
+                    <div className="text-right">
                     <a href="#" className="text-sm text-teal-600 hover:underline">
                       {t('forgotPassword')}
                     </a>
-                  </div>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
               <>
+                {isSignup && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Full Name
+                      </label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                          type="text"
+                          value={formData.full_name}
+                          onChange={(e) => handleInputChange('full_name', e.target.value)}
+                          placeholder="Enter your full name"
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={formData.phone_number}
+                        onChange={(e) => handleInputChange('phone_number', e.target.value)}
+                        placeholder="+91 9876543210"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        License Number
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.license_number}
+                        onChange={(e) => handleInputChange('license_number', e.target.value)}
+                        placeholder="DL1234567890"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+                
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">
                     {t('driverIdLabel')}
@@ -129,6 +301,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <input
                       type="text"
+                      value={formData.employee_id}
+                      onChange={(e) => handleInputChange('employee_id', e.target.value)}
                       placeholder={t('driverIdPlaceholder')}
                       className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
                       required
@@ -136,21 +310,35 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                {!isSignup && (
+                  <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">
                     {t('otpLabel')}
                   </label>
+                  <div className="flex gap-2">
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                     <input
                       type="text"
+                      value={formData.otp}
+                      onChange={(e) => handleInputChange('otp', e.target.value)}
                       placeholder={t('otpPlaceholder')}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
+                      className="flex-1 pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
                       maxLength={6}
                       required
                     />
                   </div>
-                </div>
+                  <button
+                    type="button"
+                    onClick={handleSendOTP}
+                    disabled={!formData.employee_id || loading}
+                    className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    {otpSent ? 'Resend' : 'Send OTP'}
+                  </button>
+                  </div>
+                  </div>
+                )}
               </>
             )}
 
@@ -162,14 +350,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Logging in...
+                  {isSignup ? 'Creating account...' : 'Logging in...'}
                 </div>
               ) : (
-                t('loginButton')
+                isSignup ? (activeTab === 'passenger' ? 'Create Account' : 'Register') : t('loginButton')
               )}
             </button>
 
-            {activeTab === 'passenger' && (
+            {activeTab === 'passenger' && !isSignup && (
               <>
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
@@ -194,8 +382,25 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, initialTab }) 
                 </button>
               </>
             )}
+            
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignup(!isSignup);
+                  setError(null);
+                  setOtpSent(false);
+                }}
+                className="text-sm text-teal-600 hover:underline"
+              >
+                {isSignup 
+                  ? `Already have an account? Sign in`
+                  : `Don't have an account? Sign up`
+                }
+              </button>
+            </div>
 
-            {activeTab === 'driver' && (
+            {activeTab === 'driver' && !isSignup && (
               <p className="text-xs text-center text-gray-500 mt-4">
                 {t('driverHelpText')}
               </p>
